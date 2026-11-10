@@ -21,33 +21,31 @@ export default function App() {
 
   // Check prefers-reduced-motion on mount
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-      setReducedMotion(mediaQuery.matches);
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setReducedMotion(mediaQuery.matches);
 
-      const handleChange = (e: MediaQueryListEvent) => {
-        setReducedMotion(e.matches);
-      };
-      mediaQuery.addEventListener('change', handleChange);
-      return () => mediaQuery.removeEventListener('change', handleChange);
-    }
+    const handleChange = (event: MediaQueryListEvent) => {
+      setReducedMotion(event.matches);
+    };
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
   // Listen to fullscreenchange events
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      setIsFullscreen(Boolean(document.fullscreenElement));
     };
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
-  // Kiosk Inactivity Reset / Attract Mode (85 seconds of no touch in exhibition)
+  // Kiosk inactivity reset / attract mode (85 seconds without activity)
   const resetIdleTimer = () => {
-    if (isIdle) {
-      setIsIdle(false);
-    }
-    if (idleTimerRef.current) {
+    // Always clear idle mode on interaction; a handler registered once must not
+    // rely on a stale `isIdle` value captured by its effect.
+    setIsIdle(false);
+    if (idleTimerRef.current !== null) {
       window.clearTimeout(idleTimerRef.current);
     }
     idleTimerRef.current = window.setTimeout(() => {
@@ -57,14 +55,15 @@ export default function App() {
   };
 
   useEffect(() => {
-    const events = ['mousedown', 'mousemove', 'keydown', 'touchstart', 'scroll'];
-    events.forEach(evt => window.addEventListener(evt, resetIdleTimer, { passive: true }));
+    const events = ['mousedown', 'mousemove', 'keydown', 'touchstart', 'scroll'] as const;
+    events.forEach((eventName) => window.addEventListener(eventName, resetIdleTimer, { passive: true }));
     resetIdleTimer();
 
     return () => {
-      events.forEach(evt => window.removeEventListener(evt, resetIdleTimer));
-      if (idleTimerRef.current) {
+      events.forEach((eventName) => window.removeEventListener(eventName, resetIdleTimer));
+      if (idleTimerRef.current !== null) {
         window.clearTimeout(idleTimerRef.current);
+        idleTimerRef.current = null;
       }
     };
   }, []);
@@ -88,7 +87,6 @@ export default function App() {
     audioSpeech.playSoundEffect('click');
     audioSpeech.stop();
     setLanguage(lang);
-    // Update HTML dir and lang
     document.documentElement.lang = lang;
     document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
   };
@@ -117,14 +115,11 @@ export default function App() {
   return (
     <div
       className="relative w-screen h-screen overflow-hidden flex flex-col text-stone-100 transition-all duration-1000 select-none"
-      style={{
-        background: getAmbientBgStyle(),
-      }}
+      style={{ background: getAmbientBgStyle() }}
     >
-      {/* Decorative Traditional Arch & Cedar Watermark in background */}
-      <div className="absolute inset-0 pointer-events-none opacity-5 flex items-center justify-center">
+      {/* Decorative cedar watermark in the background */}
+      <div className="absolute inset-0 pointer-events-none opacity-5 flex items-center justify-center" aria-hidden="true">
         <svg viewBox="0 0 800 800" className="w-[85vw] h-[85vh]">
-          {/* Lebanese Cedar Silhouette */}
           <polygon points="400,100 240,300 560,300" fill="#ffffff" />
           <polygon points="400,240 200,460 600,460" fill="#ffffff" />
           <polygon points="400,380 160,620 640,620" fill="#ffffff" />
@@ -132,7 +127,6 @@ export default function App() {
         </svg>
       </div>
 
-      {/* Kiosk Top Header */}
       <KioskHeader
         currentTab={currentTab}
         onSelectTab={(tab) => {
@@ -146,45 +140,24 @@ export default function App() {
         isFullscreen={isFullscreen}
         onToggleFullscreen={handleToggleFullscreen}
         reducedMotion={reducedMotion}
-        onToggleReducedMotion={() => setReducedMotion(!reducedMotion)}
+        onToggleReducedMotion={() => setReducedMotion((value) => !value)}
       />
 
-      {/* Main Kiosk Content Area */}
       <main className="flex-1 w-full relative overflow-hidden">
         {currentTab === 'story' && (
-          <StoryTheater
-            language={language}
-            reducedMotion={reducedMotion}
-            onEmotionChange={setCurrentEmotion}
-          />
+          <StoryTheater language={language} reducedMotion={reducedMotion} onEmotionChange={setCurrentEmotion} />
         )}
-
         {currentTab === 'ask' && (
-          <AskUncleRafiq
-            language={language}
-            reducedMotion={reducedMotion}
-            onEmotionChange={setCurrentEmotion}
-          />
+          <AskUncleRafiq language={language} reducedMotion={reducedMotion} onEmotionChange={setCurrentEmotion} />
         )}
-
         {currentTab === 'flag' && (
-          <FlagExplorer
-            language={language}
-            reducedMotion={reducedMotion}
-            onEmotionChange={setCurrentEmotion}
-          />
+          <FlagExplorer language={language} reducedMotion={reducedMotion} onEmotionChange={setCurrentEmotion} />
         )}
-
         {currentTab === 'quiz' && (
-          <IndependenceQuiz
-            language={language}
-            reducedMotion={reducedMotion}
-            onEmotionChange={setCurrentEmotion}
-          />
+          <IndependenceQuiz language={language} reducedMotion={reducedMotion} onEmotionChange={setCurrentEmotion} />
         )}
       </main>
 
-      {/* Attract Screen (Shown when kiosk is idle) */}
       {isIdle && (
         <AttractScreen
           onDismiss={() => {
