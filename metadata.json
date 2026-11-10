@@ -1,0 +1,8 @@
+{
+  "name": "كشك استقلال لبنان التفاعلي - الحكواتي أبو رفيق",
+  "description": "كشك تفاعلي بملء الشاشة بمناسبة عيد استقلال لبنان (22 تشرين الثاني). يضم شخصية الحكواتي بطربوش تفاعلية تروي قصة الاستقلال وتجيب عن أسئلة الزوار.",
+  "requestFramePermissions": [
+    "MICROPHONE"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
